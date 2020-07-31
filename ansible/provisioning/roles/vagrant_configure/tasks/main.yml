@@ -1,0 +1,97 @@
+---
+- name: Vagrant networking; resolve.conf option(check if this works with hadoop)
+  lineinfile:
+    dest: /etc/resolv.conf
+    state: present
+    line: "options single-request-reopen"
+
+- name: Copy in custom motd file
+  copy:
+   src: "../files/motd.txt"
+   dest: /etc/motd
+   mode: 0644
+
+- name: Set 'menu' alias in global bashrc
+  lineinfile:
+   dest: /etc/bashrc
+   line: "{{ item }}"
+  with_items:
+   - '# The line below aliases the menu command to show the motd.'
+   - "alias menu='cat /etc/motd'"
+   - "alias ap='ansible-playbook'"
+
+- name: disable firewalld
+  firewalld:
+    permanent: yes
+    state: disabled
+
+- name: install EPEL release package for RHEL
+  yum:
+    name: epel-release
+    state: latest
+  when: ansible_distribution == 'CentOS'
+- name: install EPEL release package for RHEL
+  yum:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-present-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: latest
+  when: ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Disable SELinux
+  shell: /usr/bin/sed -i 's/=enforcing/=disabled/g' /etc/selinux/config
+
+- name: yum repo
+  shell: curl -o  /etc/yum.repos.d/centos.repo https://raw.githubusercontent.com/tso-ansible/ansible-tower/master/centos.repo    
+
+- name: prepare git2
+  shell: |
+       yum -y install https://donotdeletetfstate.blob.core.windows.net/binary/endpoint-repo-1.7-1.x86_64.rpm
+
+- name: Install git, vim, vind-utils, and etc with yum
+  yum: 
+    name: 
+      - git
+      - vim
+      - bind-utils
+      - zlib-devel
+      - sqlite-devel
+      - bzip2-devel
+      - graphviz-devel
+      - openssl-devel
+      - libffi-devel
+      - libjpeg-turbo-devel
+      - giflib
+      - tmux
+      - libmemcached-devel
+      - wget
+      - unzip
+      - sshpass
+    state: present
+
+- name: sshkeygen
+  shell: su - vagrant -c 'ssh-keygen -q -f ~/.ssh/id_rsa -N ""'
+
+- name: StrictHostKeyChecking
+  shell: |
+        su - vagrant -c 'echo "Host *" > ~/.ssh/config;echo "   StrictHostKeyChecking no" >> ~/.ssh/config;echo "   UserKnownHostsFile=/dev/null" >> ~/.ssh/config;chmod 0400 ~/.ssh/config;'   
+
+- name: remove first line 
+  shell: sed -i '1d' /etc/hosts
+
+- name: sshd_config password
+  lineinfile:
+    dest:  /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication no'
+    line: "PasswordAuthentication yes"
+
+- name: add hosts
+  shell: |     
+     echo '{{item.ip}} {{item.fqdn}} {{item.server}}' >> /etc/hosts
+  with_items: 
+    - { ip: "192.168.3.150", server: "node1", fqdn: "node1.test014.org" } 
+    - { ip: "192.168.3.154", server: "node2", fqdn: "node2.test014.org" }
+    - { ip: "192.168.3.157", server: "node3", fqdn: "node3.test014.org" }
+    - { ip: "192.168.3.151", server: "db", fqdn: "db.test014.org" }             
+    - { ip: "192.168.3.111", server: "dc1", fqdn: "dc1.test014.org" }   
+
+- name: show ip
+  shell: ip a | grep 192.  

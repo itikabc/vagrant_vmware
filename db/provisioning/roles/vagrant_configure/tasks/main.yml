@@ -1,0 +1,71 @@
+---
+
+- name: Vagrant networking; resolve.conf option(check if this works with hadoop)
+  lineinfile:
+    dest: /etc/resolv.conf
+    state: present
+    line: "options single-request-reopen"
+
+- name: Vagrant networking search
+  lineinfile:
+    dest: /etc/resolv.conf
+    state: present
+    line: "search test014.org"
+
+- name: Copy in custom motd file
+  copy:
+   src: "../files/motd.txt"
+   dest: /etc/motd
+   mode: 0644
+
+- name: Set 'menu' alias in global bashrc
+  lineinfile:
+   dest: /etc/bashrc
+   line: "{{ item }}"
+  with_items:
+   - '# The line below aliases the menu command to show the motd.'
+   - "alias menu='cat /etc/motd'"
+
+- name: disable firewalld
+  firewalld:
+    permanent: yes
+    state: disabled
+
+- name: install EPEL release package for RHEL
+  yum:
+    name: epel-release
+    state: latest
+  when: ansible_distribution == 'CentOS'
+
+- name: install EPEL release package for RHEL
+  yum:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-present-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: latest
+  when: ansible_distribution == 'Red Hat Enterprise Linux'
+
+- name: Disable SELinux
+  shell: /usr/bin/sed -i 's/=enforcing/=disabled/g' /etc/selinux/config
+
+- name: yum repo
+  shell: curl -o  /etc/yum.repos.d/centos.repo https://raw.githubusercontent.com/tso-ansible/ansible-tower/master/centos.repo    
+
+- name: Install wget unzip sshpass
+  yum: 
+    name: 
+      - vim
+      - wget
+      - unzip
+      - sshpass
+    state: present
+
+- name: sshd_config password
+  lineinfile:
+    dest:  /etc/ssh/sshd_config
+    regexp: '^PasswordAuthentication no'
+    line: "PasswordAuthentication yes"
+
+- name: remove first line 
+  shell: sed -i '1d' /etc/hosts
+
+- name: show ip
+  shell: ip a | grep 192.    

@@ -1,0 +1,6 @@
+---
+- name: Configure vagrant box
+  hosts: all
+  become: yes
+  roles:
+    - { role: vagrant_configure, tags: ['setup'] }

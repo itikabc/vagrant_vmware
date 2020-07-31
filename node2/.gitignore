@@ -1,0 +1,23 @@
+# Home directory / keys
+.gitconfig
+.ssh/*
+.vagrant
+
+# Ansible retries
+provisioning/vagrant_playbook.retry
+
+# Logs:
+*.log
+
+# Linux Editors
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+.elc
+auto-save-list
+tramp
+.\#*
+*.swp
+*.swo
+
